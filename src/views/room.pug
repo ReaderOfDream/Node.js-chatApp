@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <title>Room ##{title}</title>
+    <!-- Bootstrap core CSS -->
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/main.css" rel="stylesheet">
+    <!--[if lt IE 9]><script src="../../docs-assets/js/ie8-responsive-file-warning.js"></script><![endif]-->
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
+    <![endif]-->
+  <style>[touch-action="none"]{ -ms-touch-action: none; touch-action: none; }[touch-action="pan-x"]{ -ms-touch-action: pan-x; touch-action: pan-x; }[touch-action="pan-y"]{ -ms-touch-action: pan-y; touch-action: pan-y; }[touch-action="scroll"],[touch-action="pan-x pan-y"],[touch-action="pan-y pan-x"]{ -ms-touch-action: pan-x pan-y; touch-action: pan-x pan-y; }
+  </style>
+  </head>
+  <body>
+    <div class="page-header" style="font-size: 40px;">
+      <small><a href="/rooms">Back</a></small>
+      <span> &lt;&lt; </span>
+      <span class="block-panel-heading">Room ##{title}</span>
+      <div class="block-panel-heading pull-right">
+        <span>#{user}</span>
+        <a class="logout" href="/logout">logout</a>
+      </div>
+    </div>
+    <div class="panel panel-default">
+      <div class="load-body">
+        <button id="loadMoreButton" class="btn btn-default" type="button" style="display: none">Load more</button>
+        <div id="endOfMessagesAlert" class="alert alert-success alert-dismissible" role="alert" style="display: none">
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true" >&times;</span></button>
+          span You have reached the edge of this world
+        </div>
+      </div>
+      <div id="messages" class="chat-body">
+        <script id="messageTemplate" type="text/x-handlebars-template">
+          <span class="message" data-dateTime="{{isoDate}}">
+              <span>{{localDate}}</span>
+              <span class="user" style="color: {{color}}">{{from}}</span>:
+                | {{#if file}}
+                |  <a href="{{fileLink}}" target="_blank">{{file}}</>
+                | {{else}}
+                |  {{message}}
+                | {{/if}}
+          </span>
+        </script>
+      </div>
+      <div id="typings" class="typing-body">
+      </div>
+      <div class="message-input panel-body">
+        <div class="input-group">
+          <div class="input-group-btn">
+            <button id="sendButton" class="btn btn-default" type="button">Send</button>
+            <label class="btn btn-default">Browse
+              <input id="fileButton" type="file" hidden="">
+            </label>
+            <button class="btn btn-default" id="clearFile">Clear</button></div>
+            <input id="messageText" type="text" class="form-control">
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="https://code.jquery.com/jquery.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="/js/bootstrap.min.js"></script>
+    script(src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.dev.js")
+    script(src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.1.2/handlebars.min.js")
+    script(type="module").
+      import { initSocket, socket } from '/js/roomSocket.js';
+      import { shouldSendTyping, onTypingMessage, init } from '/js/roomMessages.js';
+
+      const roomName = `#{title}`;
+      const source = $('#messageTemplate').html();
+      const messageTemplate = Handlebars.compile(source);
+
+      initSocket(io, roomName, addMessage, onTypingMessage, onDisconnect);
+      init(socket, renderTypingUsers);
+
+      $('#messageText').on("keyup", function (event) {
+        if (event.keyCode === 13) {
+          event.preventDefault();
+          $('#sendButton').click();
+        }
+        if (shouldSendTyping()){
+          socket.emit('typing', {});
+        };
+      });
+
+      window.onTyping = (msg) => {
+        onTypingMessage(msg);
+      }
+
+      function addMessage(msg) {
+        const msgHTML = createMessageHTML(msg);
+        $('#messages').append(msgHTML);
+      }
+
+      function onDisconnect(msg) {
+        alert('You have been disconnected. Please, refresh the page.');
+        $('#messages').append('<span class="label label-danger">You have been disconnected. Please, refresh the page.</span>');
+      }
+
+      function renderTypingUsers(writingUsers) {
+        const users = writingUsers.map(i => `<span class="user" style="color: ${i.user.color}">${i.user.name} is typing...</span>`)
+        $("#typings").html(users);
+      }
+
+      $("#sendButton").on('click', (e) => {
+        e.preventDefault(); // prevents page reloading
+
+        //- const formData = $("#fileForm");
+
+        var file = $('#fileButton')[0].files[0]; // You need to use standard javascript object here
+
+        if (file) {
+          sendFile(file);
+        } else {
+          sendMessage();
+        }
+
+        return false;
+      });
+
+      function sendMessage(fileName) {
+        if (fileName) {
+          socket.emit('file', { file: fileName });
+        }
+        else {
+          // TODO: clear on ack
+          socket.emit('message', { text: $("#messageText").val()});
+        }
+
+        clearInput();
+      }
+
+      function sendFile(file) {
+        var formData = new FormData();
+          formData.append('file', file);
+          $.ajax({
+            url: `/files`,
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: (data) => {
+              sendMessage(data);
+            },
+          });
+          return;
+      }
+
+      $("#fileButton").on('change', (e) => {
+        if (!e.target.files){
+          clearInput();
+          return;
+        }
+
+        const fileName = e.target.files[0].name;
+
+        $("#messageText").val(fileName);
+        $("#messageText").attr('disabled', true);
+      });
+
+      $("#clearFile").on('click', (e) => clearInput());
+
+      $("#loadMoreButton").on('click', async (e) => {
+        loadMessages();
+      });
+
+      $(() => loadMessages());
+
+      async function loadMessages() {
+        const earlierMessageDate = $(".message").data("datetime") || null;
+
+        const result = await $.ajax({
+          url: `/rooms/${roomName}/messages?lastMessageDate=${earlierMessageDate}`
+        });
+
+        const sortedResult = result.map(msg => {
+                              msg.dateTime = new Date(msg.dateTime);
+                              return msg;
+                            })
+                           .sort((a, b) => { return a.dateTime - b.dateTime; });
+
+        const tags = sortedResult.map(msg => createMessageHTML(msg));
+        $("#messages").prepend(tags);
+        if (tags.length < 10) {
+          $('#loadMoreButton').hide();
+
+          if (earlierMessageDate){
+            $('#endOfMessagesAlert').toggle();
+          }
+        }
+        else {
+           $('#loadMoreButton').show();
+        }
+      }
+
+      function createMessageHTML(msg) {
+        return messageTemplate({
+          isoDate: msg.dateTime.toISOString(),
+          localDate: `${msg.dateTime.toLocaleDateString(undefined, {month: "long", day: "numeric"})} ${msg.dateTime.toLocaleTimeString()}`,
+          //- localDate: msg.dateTime.toLocaleString(undefined, {month: "short", day: "numeric", hour: "numeric", minute: "numeric", second: "numeric"}),
+          from: msg.from,
+          file: msg.file && msg.file.origName,
+          fileLink: msg.file && `/files/${msg.file.name}`,
+          message: msg.message,
+          color: msg.color,
+        });
+      }
+
+      function clearInput(){
+        $("#fileButton").val('');
+        $("#messageText").val('');
+        $("#messageText").attr('disabled', false);
+      }
+  </body>
+</html>

@@ -1,0 +1,15 @@
+version: "2"
+services:
+  app:
+    container_name: node-js
+    restart: always
+    build: .
+    ports:
+      - "3000:3000"
+    links:
+      - mongo
+  mongo:
+    container_name: mongo
+    image: mongo:4.0
+    ports:
+      - "27018:27017"
