@@ -1,13 +1,13 @@
 version: "3.7"
 services:
   app:
-    container_name: chatApp_dev
+    container_name: chatApp_production
     restart: "no"
     build:
       context: .
       args:
-        env: 'dev'
-    image: chatapp:dev
+        env: 'production'
+    image: chatapp:production
     ports:
       - "3000:3000"
     links:

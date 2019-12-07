@@ -1,6 +1,6 @@
 {
   "db": {
-    "url": "mongodb://localhost:27017/chatApp"
+    "url": "mongodb://mongo:27017/chatApp"
   },
   "app": {
     "host": "0.0.0.0",

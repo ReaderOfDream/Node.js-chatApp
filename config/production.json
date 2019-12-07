@@ -1,4 +1,4 @@
-{
+  {
   "db": {
     "url": "mongodb://mongo:27017/chatApp"
   },
