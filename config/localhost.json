@@ -1,0 +1,14 @@
+{
+    "db": {
+      "url": "mongodb://localhost:27018/chatApp"
+    },
+    "app": {
+      "host": "0.0.0.0",
+      "port": 3001,
+      "cookieSecret": "may the force be with you",
+      "saltRounds": 10,
+      "uploadsFilePath": "uploads/",
+      "logsFilePath": "logs/"
+    }
+  }
+  

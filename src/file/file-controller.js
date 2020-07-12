@@ -10,7 +10,7 @@ const getFile = async (req, res) => {
 
   const filePath = config.get('app.uploadsFilePath');
 
-  res.download(path.join(filePath, file.origName));
+  res.download(path.join(filePath, file.name), file.origName);
 };
 
 const uploadFile = async (req, res) => {

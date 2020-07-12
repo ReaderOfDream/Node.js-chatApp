@@ -1,18 +1,20 @@
 version: "3.7"
 services:
   app:
-    container_name: chatApp_dev
+    container_name: chat_mainservice
     restart: "no"
     build:
       context: .
       args:
         env: 'dev'
-    image: chatapp:dev
+    image: node.chat:dev
     ports:
       - "3000:3000"
     links:
       - mongo
-
+    volumes:
+      - ./uploads:/usr/src/app/uploads
+      - ./logs:/usr/src/app/logs
     networks:
       - app-network
   mongo:

@@ -1,24 +1,26 @@
 const winston = require('winston');
 const config = require('config');
+const path = require('path');
 
-const loggerLevel = config.util.getEnv('NODE_ENV') === 'dev' ? 'debug' : 'info';
+const env = config.util.getEnv('NODE_ENV');
+const logDir = config.get('app.logsFilePath');
+const loggerLevel = (env === 'dev' || env === 'localhost') ? 'debug' : 'info';
 const logger = winston.createLogger({
   level: loggerLevel,
   format: winston.format.combine(
-    winston.format.colorize(),
+    winston.format.timestamp({format: 'YYYY-MM-DD HH:mm:ss'}),
     winston.format.json(),
   ),
-  expressFormat: true,
-  colorize: false,
   transports: [
-    //
-    // - Write to all logs with level `info` and below to `combined.log`
-    // - Write all logs error (and below) to `error.log`.
-    //
-    new winston.transports.File({ filename: 'error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'combined.log' }),
-    new winston.transports.Console({ format: winston.format.simple(), level: loggerLevel }),
+    new winston.transports.File({ filename: path.join(logDir, 'error.log'), level: 'error' }),
+    new winston.transports.File({ filename: path.join(logDir, 'combined.log') }),
   ],
 });
+
+if (env != 'prod'){
+  logger.add(
+    new winston.transports.Console({ format: winston.format.simple(), level: loggerLevel })
+  )
+}
 
 module.exports = logger;
